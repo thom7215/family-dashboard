@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Dashboard</title>
+  <style>
+    :root {
+      --bg: #12151c;
+      --bg-accent: #1a1f2e;
+      --surface: #1e2433;
+      --surface-raised: #262d3f;
+      --border: #343d52;
+      --text: #f0f3f8;
+      --muted: #9aa8be;
+      --accent: #5b9fd4;
+      --accent-soft: rgba(91, 159, 212, 0.18);
+      --today: #e8a838;
+      --today-soft: rgba(232, 168, 56, 0.2);
+      --todo: #6bc9a8;
+      --todo-soft: rgba(107, 201, 168, 0.15);
+      --tv: #9b7ed9;
+      --tv-soft: rgba(155, 126, 217, 0.18);
+      --grocery: #d4847c;
+      --grocery-soft: rgba(212, 132, 124, 0.15);
+      --event-1: #5b9fd4;
+      --event-2: #9b7ed9;
+      --event-3: #6bc9a8;
+      --event-4: #e8a838;
+      --event-5: #d4847c;
+      --danger: #e06c75;
+      --radius: 14px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(91, 159, 212, 0.08), transparent),
+        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(107, 201, 168, 0.06), transparent);
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      padding: 1.25rem 1.5rem 1.5rem;
+      gap: 1rem;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .header-date {
+      font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .clock {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+
+    .clock-ampm {
+      font-size: 0.45em;
+      color: var(--muted);
+      margin-left: 0.15em;
+    }
+
+    .settings-btn {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .settings-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    /* Main grid */
+    .main {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 1rem;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.15rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .panel-title .icon {
+      margin-right: 0.4em;
+    }
+
+    .panel-body {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 0.85rem 1rem 1rem;
+    }
+
+    .panel-body::-webkit-scrollbar { width: 6px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Month calendar */
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .month-label {
+      font-size: clamp(1.1rem, 2vw, 1.6rem);
+      font-weight: 600;
+      min-width: 10ch;
+      text-align: center;
+    }
+
+    .nav-btn {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 2rem;
+      height: 2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .nav-btn:hover { border-color: var(--accent); }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      height: 100%;
+    }
+
+    .dow-header {
+      text-align: center;
+      font-size: clamp(0.7rem, 1.1vw, 0.85rem);
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.35rem 0;
+    }
+
+    .day-cell {
+      background: var(--bg-accent);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0.35rem 0.4rem;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .day-cell.other-month { opacity: 0.35; }
+    .day-cell.today {
+      border-color: var(--today);
+      background: var(--today-soft);
+    }
+
+    .day-num {
+      font-size: clamp(0.8rem, 1.3vw, 1rem);
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+      flex-shrink: 0;
+    }
+
+    .day-cell.today .day-num { color: var(--today); }
+
+    .day-events {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .event-chip {
+      font-size: clamp(0.55rem, 0.9vw, 0.72rem);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    .event-chip.c0 { background: rgba(91, 159, 212, 0.35); color: #b8d9f0; }
+    .event-chip.c1 { background: rgba(155, 126, 217, 0.35); color: #d4c4f0; }
+    .event-chip.c2 { background: rgba(107, 201, 168, 0.35); color: #b8e8d4; }
+    .event-chip.c3 { background: rgba(232, 168, 56, 0.35); color: #f0d9a8; }
+    .event-chip.c4 { background: rgba(212, 132, 124, 0.35); color: #f0c4c0; }
+
+    /* Right column */
+    .right-col {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 1rem;
+      min-height: 0;
+    }
+
+    /* Week view */
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      height: 100%;
+    }
+
+    .week-day {
+      background: var(--bg-accent);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0.5rem 0.4rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .week-day.today {
+      border-color: var(--today);
+      background: var(--today-soft);
+    }
+
+    .week-day-name {
+      font-size: clamp(0.65rem, 1vw, 0.8rem);
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .week-day-num {
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+      font-weight: 700;
+      margin: 0.15rem 0 0.35rem;
+    }
+
+    .week-day.today .week-day-num { color: var(--today); }
+
+    .week-events {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .week-event {
+      font-size: clamp(0.6rem, 0.95vw, 0.78rem);
+      padding: 0.25rem 0.35rem;
+      border-radius: 5px;
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+      line-height: 1.25;
+    }
+
+    .week-event .time {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9em;
+      margin-bottom: 0.1rem;
+    }
+
+    /* Lists row */
+    .lists-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      min-height: 0;
+    }
+
+    .list-panel .panel-title.tv-title { color: var(--tv); }
+    .list-panel .panel-title.grocery-title { color: var(--grocery); }
+
+    .list-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.55rem 0.7rem;
+      background: var(--bg-accent);
+      border-radius: 10px;
+      font-size: clamp(0.85rem, 1.3vw, 1.05rem);
+      line-height: 1.35;
+    }
+
+    .list-item.done {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+
+    .list-item .bullet {
+      flex-shrink: 0;
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      margin-top: 0.45em;
+    }
+
+    .tv-panel .bullet { background: var(--tv); }
+
+    .tv-item .show-name {
+      font-weight: 600;
+      display: block;
+    }
+
+    .tv-item .episode-name {
+      color: var(--muted);
+      font-size: 0.92em;
+      margin-top: 0.15rem;
+    }
+
+    .tv-item .air-label {
+      flex-shrink: 0;
+      font-size: 0.82em;
+      font-weight: 600;
+      color: var(--tv);
+      min-width: 5.5rem;
+      text-align: right;
+      line-height: 1.3;
+    }
+
+    .tv-item.today-item {
+      background: var(--tv-soft);
+      border: 1px solid rgba(155, 126, 217, 0.35);
+    }
+
+    .grocery-panel .bullet { background: var(--grocery); }
+
+    .list-empty {
+      color: var(--muted);
+      font-size: clamp(0.85rem, 1.2vw, 1rem);
+      font-style: italic;
+      padding: 0.5rem;
+    }
+
+    /* Today banner */
+    .today-banner {
+      margin-bottom: 0.75rem;
+      padding: 0.6rem 0.85rem;
+      background: var(--today-soft);
+      border: 1px solid rgba(232, 168, 56, 0.35);
+      border-radius: 10px;
+      font-size: clamp(0.8rem, 1.2vw, 0.95rem);
+    }
+
+    .today-banner strong { color: var(--today); }
+
+    .sync-status {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .sync-status.error { color: var(--danger); }
+    .sync-status.ok { color: var(--todo); }
+
+    /* Settings overlay */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: min(540px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-header {
+      padding: 1.15rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 { font-size: 1.2rem; }
+
+    .modal-body { padding: 1.25rem; }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .form-group input, .form-group textarea {
+      width: 100%;
+      background: var(--bg-accent);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 0.6rem 0.75rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+
+    .form-group textarea { min-height: 80px; resize: vertical; }
+
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+      line-height: 1.45;
+    }
+
+    .form-hint a { color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover { filter: brightness(1.1); }
+
+    .btn-secondary {
+      background: var(--surface-raised);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+
+    .edit-section {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .edit-section h3 {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .edit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      max-height: 160px;
+      overflow: auto;
+      margin-bottom: 0.75rem;
+    }
+
+    .edit-list-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .edit-list-item input[type="checkbox"] {
+      width: auto;
+      accent-color: var(--accent);
+    }
+
+    .add-row {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .add-row input { flex: 1; }
+
+    .grocery-add {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.65rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .grocery-add input {
+      flex: 1;
+      padding: 0.55rem 0.75rem;
+      background: var(--bg-accent);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .grocery-add input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .grocery-add .btn { flex-shrink: 0; padding: 0.55rem 0.85rem; }
+
+    .list-item.grocery-item {
+      cursor: pointer;
+    }
+
+    .list-item.grocery-item input[type="checkbox"] {
+      accent-color: var(--grocery);
+      width: 1rem;
+      height: 1rem;
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+      cursor: pointer;
+    }
+
+    .tv-section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tv);
+      margin: 0.75rem 0 0.45rem;
+    }
+
+    .tv-section-label:first-child { margin-top: 0; }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .close-btn:hover { color: var(--text); }
+
+    @media (max-width: 1100px) {
+      .main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      .right-col { grid-template-rows: auto auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <header class="header">
+      <div class="header-left">
+        <span class="header-date" id="headerDate"></span>
+      </div>
+      <div class="header-right">
+        <div class="clock" id="clock"></div>
+        <button class="settings-btn" id="openSettings" title="Settings (S)">⚙</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <section class="panel month-panel">
+        <div class="panel-header">
+          <div class="month-nav">
+            <button class="nav-btn" id="prevMonth" aria-label="Previous month">‹</button>
+            <span class="month-label" id="monthLabel"></span>
+            <button class="nav-btn" id="nextMonth" aria-label="Next month">›</button>
+          </div>
+          <span class="sync-status" id="syncStatus">Calendar not configured</span>
+        </div>
+        <div class="panel-body">
+          <div class="month-grid" id="monthGrid"></div>
+        </div>
+      </section>
+
+      <div class="right-col">
+        <section class="panel week-panel">
+          <div class="panel-header">
+            <span class="panel-title"><span class="icon">📅</span>This Week</span>
+            <div class="month-nav">
+              <button class="nav-btn" id="prevWeek" aria-label="Previous week">‹</button>
+              <button class="nav-btn" id="nextWeek" aria-label="Next week">›</button>
+              <button class="nav-btn" id="todayWeek" title="Go to today" style="width:auto;padding:0 0.5rem;font-size:0.75rem;">Today</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="today-banner" id="todayBanner"></div>
+            <div class="week-grid" id="weekGrid"></div>
+          </div>
+        </section>
+
+        <div class="lists-row">
+          <section class="panel list-panel tv-panel">
+            <div class="panel-header">
+              <span class="panel-title tv-title"><span class="icon">📺</span>TV Shows</span>
+              <span class="sync-status" id="tvStatus"></span>
+            </div>
+            <div class="panel-body" style="display:flex;flex-direction:column;">
+              <div class="list-items" id="tvList" style="flex:1;"></div>
+            </div>
+          </section>
+
+          <section class="panel list-panel grocery-panel">
+            <div class="panel-header">
+              <span class="panel-title grocery-title"><span class="icon">🛒</span>Grocery</span>
+              <span class="sync-status" id="groceryStatus"></span>
+            </div>
+            <div class="panel-body" style="display:flex;flex-direction:column;">
+              <div class="list-items" id="groceryList" style="flex:1;"></div>
+              <div class="grocery-add">
+                <input type="text" id="quickGrocery" placeholder="Add grocery item…" autocomplete="off">
+                <button class="btn" id="quickAddGrocery" type="button">Add</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="settingsOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Dashboard Settings</h2>
+        <button class="close-btn" id="closeSettings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="apiUrl">Cloud API URL (Cloudflare Worker)</label>
+          <input type="url" id="apiUrl" placeholder="https://family-dashboard-api.your-name.workers.dev">
+          <p class="form-hint">
+            Deploy the included <code>worker/</code> folder to Cloudflare Workers.
+            Used for shared groceries, TV favorites, and calendar/TVMaze proxy when hosted on GitHub Pages.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="familyToken">Family password</label>
+          <input type="password" id="familyToken" placeholder="Shared household password" autocomplete="off">
+          <p class="form-hint">Same password for everyone. Set it in Cloudflare with <code>wrangler secret put FAMILY_TOKEN</code>.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="icsUrl">Calendar feed URL (iCal / .ics)</label>
+          <input type="url" id="icsUrl" placeholder="https://calendar.google.com/calendar/ical/...">
+          <p class="form-hint">
+            Google Calendar: Settings → your calendar → Integrate calendar → Secret address in iCal format.<br>
+            Outlook: Settings → Shared calendars → Publish calendar → ICS link.<br>
+            Apple iCloud: Calendar app → Share → Public Calendar → Copy link (change webcal to https).
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="proxyUrl">Calendar proxy URL</label>
+          <input type="url" id="proxyUrl" placeholder="https://your-worker.workers.dev/api/ics?url=">
+          <p class="form-hint">
+            When hosted online, use your Cloudflare Worker: <code>https://…workers.dev/api/ics?url=</code><br>
+            For local use: <code>http://localhost:8787/ics?url=</code> with <code>node proxy-server.mjs</code>.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="refreshMinutes">Refresh calendar every (minutes)</label>
+          <input type="number" id="refreshMinutes" min="5" max="120" value="15">
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn" id="saveSettings">Save &amp; Sync</button>
+          <button class="btn btn-secondary" id="syncNow">Sync Now</button>
+          <button class="btn btn-secondary" id="returnToToday">Return to Today</button>
+        </div>
+
+        <div class="edit-section">
+          <h3>TV Shows</h3>
+          <p class="form-hint">
+            Favorites sync via the Cloud API. Manage them in the <strong>TV Tracker</strong> app
+            (<a href="tv/" target="_blank">open TV Tracker</a> when hosted on GitHub Pages).
+          </p>
+          <button class="btn btn-secondary" id="refreshTV" type="button">Refresh TV list</button>
+        </div>
+
+        <div class="edit-section">
+          <h3>Grocery List</h3>
+          <div class="edit-list" id="editGroceryList"></div>
+          <div class="add-row">
+            <input type="text" id="newGrocery" placeholder="Add grocery item...">
+            <button class="btn" id="addGrocery">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'familyDashboard';
+    const LOCAL_PROXY = 'http://localhost:8787';
+    const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    let state = loadState();
+    let events = [];
+    let tvEpisodes = [];
+    let viewMonth = new Date();
+    let viewWeekStart = startOfWeek(new Date());
+    let syncTimer = null;
+
+    function defaultState() {
+      return {
+        apiUrl: '',
+        familyToken: '',
+        icsUrl: '',
+        proxyUrl: '',
+        refreshMinutes: 15,
+        groceries: []
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? { ...defaultState(), ...JSON.parse(raw) } : defaultState();
+      } catch {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function apiBase() {
+      return (state.apiUrl || '').replace(/\/$/, '');
+    }
+
+    function useCloud() {
+      return Boolean(apiBase() && state.familyToken);
+    }
+
+    function apiHeaders() {
+      const h = { 'Content-Type': 'application/json' };
+      if (state.familyToken) h['X-Family-Token'] = state.familyToken;
+      return h;
+    }
+
+    async function apiFetch(path, options = {}) {
+      const base = apiBase();
+      if (!base) throw new Error('Cloud API not configured');
+      const res = await fetch(`${base}${path}`, {
+        ...options,
+        headers: { ...apiHeaders(), ...(options.headers || {}) },
+      });
+      if (!res.ok) throw new Error(`API ${res.status}`);
+      return res.json();
+    }
+
+    function proxyBase() {
+      if (apiBase()) return apiBase();
+      return LOCAL_PROXY;
+    }
+
+    function calendarProxyPrefix() {
+      if (state.proxyUrl) return state.proxyUrl;
+      if (apiBase()) return `${apiBase()}/api/ics?url=`;
+      return `${LOCAL_PROXY}/ics?url=`;
+    }
+
+    function tvmazeUrl(path) {
+      if (apiBase()) return `${apiBase()}/api/tvmaze${path}`;
+      return `${LOCAL_PROXY}/tvmaze${path}`;
+    }
+
+    async function loadCloudGroceries() {
+      if (!useCloud()) return;
+      const status = document.getElementById('groceryStatus');
+      try {
+        status.textContent = 'Syncing…';
+        state.groceries = await apiFetch('/api/groceries');
+        status.textContent = `${state.groceries.filter(g => !g.done).length} items`;
+        status.className = 'sync-status ok';
+        renderGroceryList();
+      } catch {
+        status.textContent = 'Sync failed';
+        status.className = 'sync-status error';
+      }
+    }
+
+    async function saveGroceries() {
+      saveState();
+      if (!useCloud()) return;
+      const status = document.getElementById('groceryStatus');
+      try {
+        await apiFetch('/api/groceries', { method: 'PUT', body: JSON.stringify(state.groceries) });
+        status.textContent = `${state.groceries.filter(g => !g.done).length} items`;
+        status.className = 'sync-status ok';
+      } catch {
+        status.textContent = 'Save failed';
+        status.className = 'sync-status error';
+      }
+    }
+
+    async function addGroceryItem(text) {
+      if (!text.trim()) return;
+      if (useCloud()) {
+        const status = document.getElementById('groceryStatus');
+        try {
+          status.textContent = 'Saving…';
+          state.groceries = await apiFetch('/api/groceries', {
+            method: 'POST',
+            body: JSON.stringify({ text: text.trim() }),
+          });
+          status.textContent = `${state.groceries.filter(g => !g.done).length} items`;
+          status.className = 'sync-status ok';
+          renderGroceryList();
+          renderEditLists();
+        } catch {
+          status.textContent = 'Add failed';
+          status.className = 'sync-status error';
+        }
+      } else {
+        state.groceries.push({ text: text.trim(), done: false, id: Date.now() });
+        saveState();
+        renderGroceryList();
+        renderEditLists();
+      }
+    }
+
+    function startOfWeek(d) {
+      const x = new Date(d);
+      x.setHours(0, 0, 0, 0);
+      x.setDate(x.getDate() - x.getDay());
+      return x;
+    }
+
+    function sameDay(a, b) {
+      return a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate();
+    }
+
+    function dateKey(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function formatTime(d) {
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatEpisodeTime(airtime) {
+      if (!airtime) return '';
+      const [hours, minutes] = airtime.split(':').map(Number);
+      const t = new Date();
+      t.setHours(hours, minutes, 0, 0);
+      return t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatEpisodeDay(airdate) {
+      const d = new Date(airdate + 'T12:00:00');
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      if (sameDay(d, today)) return 'Today';
+      if (sameDay(d, tomorrow)) return 'Tomorrow';
+      return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function getShowFromScheduleEntry(entry) {
+      return entry.show || (entry._embedded && entry._embedded.show) || null;
+    }
+
+    async function syncTVShows() {
+      const status = document.getElementById('tvStatus');
+      status.textContent = 'Loading…';
+      status.className = 'sync-status';
+
+      let favorites = [];
+      try {
+        if (useCloud()) {
+          favorites = await apiFetch('/api/favorites');
+        } else {
+          const res = await fetch(`${LOCAL_PROXY}/favorites`);
+          if (res.ok) favorites = await res.json();
+        }
+      } catch {
+        status.textContent = useCloud() ? 'API offline' : 'Proxy offline';
+        status.className = 'sync-status error';
+        tvEpisodes = [];
+        renderTVList();
+        return;
+      }
+
+      if (!Array.isArray(favorites) || !favorites.length) {
+        status.textContent = 'No favorites';
+        status.className = 'sync-status';
+        tvEpisodes = [];
+        renderTVList();
+        return;
+      }
+
+      const favIds = new Set(favorites.map(f => f.id));
+      const favNames = new Map(favorites.map(f => [f.id, f.name]));
+
+      try {
+        const res = await fetch(tvmazeUrl('/schedule/full?country=US'));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const schedule = await res.json();
+
+        tvEpisodes = schedule
+          .map(entry => {
+            const show = getShowFromScheduleEntry(entry);
+            if (!show || !favIds.has(show.id) || !entry.airdate) return null;
+            return {
+              showId: show.id,
+              showName: favNames.get(show.id) || show.name,
+              episodeName: entry.name,
+              season: entry.season,
+              number: entry.number,
+              airdate: entry.airdate,
+              airtime: entry.airtime || '',
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => {
+            const dateCompare = a.airdate.localeCompare(b.airdate);
+            if (dateCompare !== 0) return dateCompare;
+            return (a.airtime || '').localeCompare(b.airtime || '');
+          });
+
+        status.textContent = tvEpisodes.length ? `${tvEpisodes.length} episode${tvEpisodes.length === 1 ? '' : 's'}` : 'None this week';
+        status.className = 'sync-status ok';
+        renderTVList();
+      } catch (err) {
+        status.textContent = 'Load failed';
+        status.className = 'sync-status error';
+        console.error('TV sync error:', err);
+        tvEpisodes = [];
+        renderTVList();
+      }
+    }
+
+    function renderTVList() {
+      const el = document.getElementById('tvList');
+      const today = new Date();
+      const todayKey = dateKey(today);
+
+      if (!tvEpisodes.length) {
+        el.innerHTML = `<div class="list-empty">Star shows in TV Tracker — episodes air here when scheduled</div>`;
+        updateTodayBannerTV([]);
+        return;
+      }
+
+      const todayEps = tvEpisodes.filter(ep => ep.airdate === todayKey);
+      const laterEps = tvEpisodes.filter(ep => ep.airdate !== todayKey);
+
+      updateTodayBannerTV(todayEps);
+
+      let html = '';
+
+      if (todayEps.length) {
+        html += `<div class="tv-section-label">Tonight</div>`;
+        html += todayEps.map(ep => renderTVEpisode(ep, true)).join('');
+      }
+
+      if (laterEps.length) {
+        html += `<div class="tv-section-label">${todayEps.length ? 'Later this week' : 'This week'}</div>`;
+        html += laterEps.slice(0, todayEps.length ? 10 : 14).map(ep => renderTVEpisode(ep, false)).join('');
+        if (laterEps.length > (todayEps.length ? 10 : 14)) {
+          html += `<div class="list-empty">+${laterEps.length - (todayEps.length ? 10 : 14)} more</div>`;
+        }
+      }
+
+      el.innerHTML = html || `<div class="list-empty">Nothing airing this week for your favorites</div>`;
+    }
+
+    function renderTVEpisode(ep, isToday) {
+      const dayLabel = formatEpisodeDay(ep.airdate);
+      const timeLabel = formatEpisodeTime(ep.airtime);
+      const airLabel = timeLabel ? `${dayLabel}<br>${timeLabel}` : dayLabel;
+      return `
+        <div class="list-item tv-item${isToday ? ' today-item' : ''}">
+          <span class="bullet"></span>
+          <div style="flex:1;min-width:0;">
+            <span class="show-name">${esc(ep.showName)}</span>
+            <div class="episode-name">S${ep.season}E${ep.number} — ${esc(ep.episodeName)}</div>
+          </div>
+          <span class="air-label">${airLabel}</span>
+        </div>`;
+    }
+
+    function updateTodayBannerTV(todayEps) {
+      const banner = document.getElementById('todayBanner');
+      const calPart = banner.dataset.calPart || '';
+      let tvPart = '';
+      if (todayEps.length) {
+        tvPart = `<br><strong style="color:var(--tv)">TV tonight:</strong> ${todayEps.map(ep => {
+          const t = formatEpisodeTime(ep.airtime);
+          return `${t ? t + ' — ' : ''}${esc(ep.showName)} (${esc(ep.episodeName)})`;
+        }).join(' · ')}`;
+      }
+      banner.innerHTML = calPart + tvPart;
+    }
+
+    function renderGroceryList() {
+      const el = document.getElementById('groceryList');
+      const active = state.groceries.filter(i => !i.done);
+      const done = state.groceries.filter(i => i.done);
+
+      if (!state.groceries.length) {
+        el.innerHTML = `<div class="list-empty">Add items below — everyone in the family can contribute</div>`;
+        return;
+      }
+
+      const renderItem = (item, idx) =>
+        `<label class="list-item grocery-item${item.done ? ' done' : ''}">
+          <input type="checkbox" data-grocery-id="${item.id}" data-grocery-idx="${idx}" ${item.done ? 'checked' : ''}>
+          <span>${esc(item.text)}</span>
+        </label>`;
+
+      const indexed = state.groceries.map((item, idx) => ({ item, idx }));
+      const activeItems = indexed.filter(x => !x.item.done);
+      const doneItems = indexed.filter(x => x.item.done);
+
+      el.innerHTML = [...activeItems, ...doneItems].slice(0, 14)
+        .map(({ item, idx }) => renderItem(item, idx)).join('');
+      if (state.groceries.length > 14) {
+        el.innerHTML += `<div class="list-empty">+${state.groceries.length - 14} more</div>`;
+      }
+    }
+
+    /* ---- ICS parser ---- */
+    function parseICS(text) {
+      const unfolded = text.replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '');
+      const blocks = unfolded.split('BEGIN:VEVENT');
+      const parsed = [];
+
+      for (let i = 1; i < blocks.length; i++) {
+        const block = blocks[i].split('END:VEVENT')[0];
+        const lines = block.split('\n').filter(Boolean);
+        const ev = { summary: '(No title)', allDay: false };
+
+        for (const line of lines) {
+          const idx = line.indexOf(':');
+          if (idx === -1) continue;
+          const rawKey = line.slice(0, idx);
+          const value = line.slice(idx + 1);
+          const key = rawKey.split(';')[0].toUpperCase();
+
+          if (key === 'SUMMARY') ev.summary = value.replace(/\\n/g, ' ').replace(/\\,/g, ',');
+          else if (key === 'DTSTART') {
+            const isDate = /VALUE=DATE/i.test(rawKey) || /^\d{8}$/.test(value);
+            ev.allDay = isDate;
+            ev.start = parseICSDate(value, isDate);
+          } else if (key === 'DTEND') {
+            const isDate = /VALUE=DATE/i.test(rawKey) || /^\d{8}$/.test(value);
+            ev.end = parseICSDate(value, isDate);
+          } else if (key === 'RRULE') ev.rrule = value;
+          else if (key === 'UID') ev.uid = value;
+        }
+
+        if (ev.start) {
+          if (!ev.end) ev.end = ev.allDay ? new Date(ev.start) : new Date(ev.start.getTime() + 3600000);
+          parsed.push(ev);
+        }
+      }
+      return expandEvents(parsed);
+    }
+
+    function parseICSDate(str, isDate) {
+      const clean = str.replace(/[^0-9TZ]/g, '');
+      if (isDate && clean.length >= 8) {
+        const y = +clean.slice(0, 4), m = +clean.slice(4, 6) - 1, d = +clean.slice(6, 8);
+        return new Date(y, m, d);
+      }
+      if (clean.endsWith('Z') && clean.length >= 15) {
+        const y = +clean.slice(0, 4), m = +clean.slice(4, 6) - 1, d = +clean.slice(6, 8);
+        const hh = +clean.slice(9, 11), mm = +clean.slice(11, 13);
+        return new Date(Date.UTC(y, m, d, hh, mm));
+      }
+      if (clean.length >= 15) {
+        const y = +clean.slice(0, 4), m = +clean.slice(4, 6) - 1, d = +clean.slice(6, 8);
+        const hh = +clean.slice(9, 11), mm = +clean.slice(11, 13);
+        return new Date(y, m, d, hh, mm);
+      }
+      if (clean.length >= 8) {
+        const y = +clean.slice(0, 4), m = +clean.slice(4, 6) - 1, d = +clean.slice(6, 8);
+        return new Date(y, m, d);
+      }
+      return new Date();
+    }
+
+    function expandEvents(rawEvents) {
+      const rangeStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
+      const rangeEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 2, 0, 23, 59, 59);
+      const instances = [];
+
+      for (const ev of rawEvents) {
+        if (ev.rrule) {
+          instances.push(...expandRRule(ev, rangeStart, rangeEnd));
+        } else {
+          instances.push({ ...ev });
+        }
+      }
+      return instances;
+    }
+
+    function expandRRule(ev, rangeStart, rangeEnd) {
+      const rule = {};
+      for (const part of ev.rrule.split(';')) {
+        const [k, v] = part.split('=');
+        if (k && v) rule[k.toUpperCase()] = v;
+      }
+
+      const freq = rule.FREQ;
+      const interval = parseInt(rule.INTERVAL || '1', 10);
+      const count = rule.COUNT ? parseInt(rule.COUNT, 10) : 500;
+      const until = rule.UNTIL ? parseICSDate(rule.UNTIL, /^\d{8}T/.test(rule.UNTIL) === false) : null;
+      const byday = rule.BYDAY ? rule.BYDAY.split(',') : null;
+
+      const dayMap = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+      const results = [];
+      let cur = new Date(ev.start);
+      let n = 0;
+
+      while (n < count && cur <= rangeEnd) {
+        if (until && cur > until) break;
+        const ok = !byday || byday.some(d => cur.getDay() === dayMap[d.slice(-2)] || cur.getDay() === dayMap[d]);
+        if (ok && cur >= rangeStart) {
+          const dur = (ev.end || ev.start) - ev.start;
+          results.push({
+            ...ev,
+            start: new Date(cur),
+            end: new Date(cur.getTime() + dur)
+          });
+        }
+        n++;
+        if (freq === 'DAILY') cur.setDate(cur.getDate() + interval);
+        else if (freq === 'WEEKLY') cur.setDate(cur.getDate() + 7 * interval);
+        else if (freq === 'MONTHLY') cur.setMonth(cur.getMonth() + interval);
+        else if (freq === 'YEARLY') cur.setFullYear(cur.getFullYear() + interval);
+        else break;
+      }
+      return results.length ? results : [{ ...ev }];
+    }
+
+    function eventsOnDay(day) {
+      const key = dateKey(day);
+      return events.filter(ev => {
+        const s = new Date(ev.start);
+        const e = ev.end ? new Date(ev.end) : s;
+        if (ev.allDay) {
+          const endEx = new Date(e);
+          if (ev.end && e > s) endEx.setDate(endEx.getDate() - 1);
+          const d = new Date(day);
+          return d >= stripTime(s) && d <= stripTime(endEx);
+        }
+        return dateKey(s) === key;
+      }).sort((a, b) => a.start - b.start);
+    }
+
+    function stripTime(d) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    async function syncCalendar() {
+      const status = document.getElementById('syncStatus');
+      if (!state.icsUrl) {
+        status.textContent = 'Calendar not configured';
+        status.className = 'sync-status';
+        events = [];
+        renderAll();
+        return;
+      }
+
+      status.textContent = 'Syncing...';
+      status.className = 'sync-status';
+
+      let fetchUrl = state.icsUrl.trim().replace(/^webcal:\/\//i, 'https://');
+      if (state.proxyUrl) {
+        fetchUrl = state.proxyUrl.trim() + encodeURIComponent(fetchUrl);
+      }
+
+      try {
+        const res = await fetch(fetchUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        events = parseICS(text);
+        const now = new Date();
+        status.textContent = `Synced ${now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+        status.className = 'sync-status ok';
+        renderAll();
+      } catch (err) {
+        status.textContent = `Sync failed — check settings/proxy`;
+        status.className = 'sync-status error';
+        console.error('Calendar sync error:', err);
+      }
+    }
+
+    function scheduleSync() {
+      if (syncTimer) clearInterval(syncTimer);
+      const mins = Math.max(5, parseInt(state.refreshMinutes, 10) || 15);
+      syncTimer = setInterval(syncCalendar, mins * 60 * 1000);
+    }
+
+    /* ---- Render ---- */
+    function renderClock() {
+      const now = new Date();
+      document.getElementById('clock').innerHTML =
+        `${now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }).replace(/ (AM|PM)/, '<span class="clock-ampm"> $1</span>')}`;
+      document.getElementById('headerDate').textContent =
+        now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    function renderMonth() {
+      const grid = document.getElementById('monthGrid');
+      const y = viewMonth.getFullYear();
+      const m = viewMonth.getMonth();
+      document.getElementById('monthLabel').textContent = `${MONTHS[m]} ${y}`;
+
+      const first = new Date(y, m, 1);
+      const startPad = first.getDay();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const today = new Date();
+
+      let html = DOW.map(d => `<div class="dow-header">${d}</div>`).join('');
+
+      const totalCells = Math.ceil((startPad + daysInMonth) / 7) * 7;
+      for (let i = 0; i < totalCells; i++) {
+        const dayNum = i - startPad + 1;
+        const inMonth = dayNum >= 1 && dayNum <= daysInMonth;
+        const cellDate = inMonth ? new Date(y, m, dayNum) : null;
+        const other = inMonth ? '' : ' other-month';
+        const isToday = cellDate && sameDay(cellDate, today) ? ' today' : '';
+
+        let dayContent = '';
+        if (cellDate) {
+          const dayEv = eventsOnDay(cellDate);
+          const chips = dayEv.slice(0, 3).map((ev, idx) =>
+            `<div class="event-chip c${idx % 5}" title="${esc(ev.summary)}">${esc(ev.summary)}</div>`
+          ).join('');
+          const more = dayEv.length > 3 ? `<div class="event-chip c4">+${dayEv.length - 3} more</div>` : '';
+          dayContent = `<div class="day-num">${dayNum}</div><div class="day-events">${chips}${more}</div>`;
+        }
+
+        html += `<div class="day-cell${other}${isToday}">${dayContent}</div>`;
+      }
+      grid.innerHTML = html;
+    }
+
+    function renderWeek() {
+      const grid = document.getElementById('weekGrid');
+      const today = new Date();
+      let html = '';
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(viewWeekStart);
+        d.setDate(d.getDate() + i);
+        const isToday = sameDay(d, today);
+        const dayEv = eventsOnDay(d);
+
+        const evHtml = dayEv.map(ev => {
+          const timeStr = ev.allDay ? 'All day' : formatTime(ev.start);
+          return `<div class="week-event"><span class="time">${timeStr}</span>${esc(ev.summary)}</div>`;
+        }).join('') || '<div class="week-event" style="opacity:0.4;border:none;background:transparent;">—</div>';
+
+        html += `
+          <div class="week-day${isToday ? ' today' : ''}">
+            <div class="week-day-name">${DOW[d.getDay()]}</div>
+            <div class="week-day-num">${d.getDate()}</div>
+            <div class="week-events">${evHtml}</div>
+          </div>`;
+      }
+      grid.innerHTML = html;
+
+      const todayEv = eventsOnDay(today);
+      const banner = document.getElementById('todayBanner');
+      if (todayEv.length) {
+        banner.dataset.calPart = `<strong>Today:</strong> ${todayEv.map(e =>
+          `${e.allDay ? '' : formatTime(e.start) + ' — '}${esc(e.summary)}`
+        ).join(' · ')}`;
+      } else {
+        banner.dataset.calPart = '<strong>Today:</strong> No events scheduled';
+      }
+      banner.style.display = 'block';
+      updateTodayBannerTV(tvEpisodes.filter(ep => ep.airdate === dateKey(today)));
+    }
+
+    function renderList(containerId, items, type) {
+      const el = document.getElementById(containerId);
+      const active = items.filter(i => !i.done);
+      const done = items.filter(i => i.done);
+
+      if (!items.length) {
+        el.innerHTML = `<div class="list-empty">Nothing here yet — open Settings to add items</div>`;
+        return;
+      }
+
+      const renderItem = item =>
+        `<div class="list-item${item.done ? ' done' : ''}"><span class="bullet"></span><span>${esc(item.text)}</span></div>`;
+
+      el.innerHTML = [...active, ...done].slice(0, 12).map(renderItem).join('');
+      if (items.length > 12) {
+        el.innerHTML += `<div class="list-empty">+${items.length - 12} more in settings</div>`;
+      }
+    }
+
+    function renderEditLists() {
+      const groceryEl = document.getElementById('editGroceryList');
+
+      groceryEl.innerHTML = state.groceries.map((item, i) => `
+        <label class="edit-list-item">
+          <input type="checkbox" data-type="grocery" data-idx="${i}" ${item.done ? 'checked' : ''}>
+          <span>${esc(item.text)}</span>
+        </label>`).join('') || '<span class="form-hint">No items</span>';
+    }
+
+    function renderAll() {
+      renderMonth();
+      renderWeek();
+      renderTVList();
+      renderGroceryList();
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    /* ---- Settings UI ---- */
+    function openSettings() {
+      document.getElementById('apiUrl').value = state.apiUrl;
+      document.getElementById('familyToken').value = state.familyToken;
+      document.getElementById('icsUrl').value = state.icsUrl;
+      document.getElementById('proxyUrl').value = state.proxyUrl;
+      document.getElementById('refreshMinutes').value = state.refreshMinutes;
+      renderEditLists();
+      document.getElementById('settingsOverlay').classList.add('open');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsOverlay').classList.remove('open');
+    }
+
+    function saveSettingsFromForm() {
+      state.apiUrl = document.getElementById('apiUrl').value.trim();
+      state.familyToken = document.getElementById('familyToken').value;
+      state.icsUrl = document.getElementById('icsUrl').value.trim();
+      state.proxyUrl = document.getElementById('proxyUrl').value.trim();
+      state.refreshMinutes = parseInt(document.getElementById('refreshMinutes').value, 10) || 15;
+      saveState();
+      scheduleSync();
+      syncCalendar();
+      loadCloudGroceries();
+      syncTVShows();
+      renderClock();
+      closeSettings();
+    }
+
+    function addItemFromInput(inputId) {
+      const input = document.getElementById(inputId);
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      addGroceryItem(text);
+    }
+
+    /* ---- Init ---- */
+    document.getElementById('openSettings').addEventListener('click', openSettings);
+    document.getElementById('closeSettings').addEventListener('click', closeSettings);
+    document.getElementById('saveSettings').addEventListener('click', saveSettingsFromForm);
+    document.getElementById('syncNow').addEventListener('click', syncCalendar);
+    document.getElementById('returnToToday').addEventListener('click', () => {
+      viewMonth = new Date();
+      viewWeekStart = startOfWeek(new Date());
+      renderAll();
+    });
+
+    document.getElementById('prevMonth').addEventListener('click', () => {
+      viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
+      renderMonth();
+    });
+    document.getElementById('nextMonth').addEventListener('click', () => {
+      viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
+      renderMonth();
+    });
+    document.getElementById('prevWeek').addEventListener('click', () => {
+      viewWeekStart.setDate(viewWeekStart.getDate() - 7);
+      renderWeek();
+    });
+    document.getElementById('nextWeek').addEventListener('click', () => {
+      viewWeekStart.setDate(viewWeekStart.getDate() + 7);
+      renderWeek();
+    });
+    document.getElementById('todayWeek').addEventListener('click', () => {
+      viewWeekStart = startOfWeek(new Date());
+      viewMonth = new Date();
+      renderAll();
+    });
+
+    document.getElementById('addGrocery').addEventListener('click', () => addItemFromInput('newGrocery'));
+    document.getElementById('newGrocery').addEventListener('keydown', e => { if (e.key === 'Enter') addItemFromInput('newGrocery'); });
+    document.getElementById('quickAddGrocery').addEventListener('click', () => addItemFromInput('quickGrocery'));
+    document.getElementById('quickGrocery').addEventListener('keydown', e => { if (e.key === 'Enter') addItemFromInput('quickGrocery'); });
+    document.getElementById('refreshTV').addEventListener('click', syncTVShows);
+
+    document.getElementById('settingsOverlay').addEventListener('click', e => {
+      if (e.target.id === 'settingsOverlay') closeSettings();
+    });
+
+    document.addEventListener('change', e => {
+      const t = e.target;
+      if (t.dataset.type === 'grocery') {
+        state.groceries[+t.dataset.idx].done = t.checked;
+        saveGroceries();
+        renderAll();
+      }
+      if (t.dataset.groceryId) {
+        const item = state.groceries.find(g => String(g.id) === t.dataset.groceryId);
+        if (item) {
+          item.done = t.checked;
+          saveGroceries();
+          renderAll();
+        }
+      }
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 's' || e.key === 'S') {
+        if (document.getElementById('settingsOverlay').classList.contains('open')) closeSettings();
+        else openSettings();
+      }
+      if (e.key === 'Escape') closeSettings();
+    });
+
+    // Auto-return to today at midnight & every hour keep clock fresh
+    setInterval(() => {
+      renderClock();
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() < 2) {
+        viewMonth = new Date();
+        viewWeekStart = startOfWeek(new Date());
+        renderAll();
+      }
+    }, 1000);
+
+    // Auto-advance week/month on TV (slow cycle so family always sees current period)
+    setInterval(() => {
+      const now = new Date();
+      if (viewMonth.getMonth() !== now.getMonth() || viewMonth.getFullYear() !== now.getFullYear()) {
+        viewMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+      const expectedWeek = startOfWeek(now).getTime();
+      if (viewWeekStart.getTime() !== expectedWeek) {
+        viewWeekStart = startOfWeek(now);
+      }
+      renderAll();
+    }, 60000);
+
+    setInterval(syncTVShows, 30 * 60 * 1000);
+    setInterval(loadCloudGroceries, 2 * 60 * 1000);
+
+    renderClock();
+    renderAll();
+    scheduleSync();
+    loadCloudGroceries();
+    syncTVShows();
+    if (state.icsUrl) syncCalendar();
+  </script>
+</body>
+</html>
