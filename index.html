@@ -265,8 +265,8 @@
     /* Right column */
     .right-col {
       display: grid;
-      grid-template-rows: 1fr 1fr;
-      gap: 1rem;
+      grid-template-rows: 1fr auto;
+      gap: 0.75rem;
       min-height: 0;
     }
 
@@ -338,8 +338,8 @@
     .lists-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      min-height: 0;
+      gap: 0.75rem;
+      align-items: start;
     }
 
     .list-panel .panel-title.tv-title { color: var(--tv); }
@@ -375,7 +375,74 @@
       margin-top: 0.45em;
     }
 
-    .tv-panel .bullet { background: var(--tv); }
+    .tv-panel .panel-header {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .tv-panel .panel-body {
+      overflow: hidden;
+      padding: 0.35rem 0.55rem 0.45rem;
+    }
+
+    .tv-panel .list-items {
+      gap: 0.2rem;
+      overflow: hidden;
+    }
+
+    .tv-section-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tv);
+      margin: 0.35rem 0 0.15rem;
+      opacity: 0.85;
+    }
+
+    .tv-section-label:first-child { margin-top: 0; }
+
+    .tv-row {
+      display: grid;
+      grid-template-columns: 4.5rem 1fr auto;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.28rem 0.45rem;
+      background: var(--bg-accent);
+      border-radius: 6px;
+      font-size: clamp(0.68rem, 1.05vw, 0.82rem);
+      line-height: 1.2;
+      min-height: 0;
+    }
+
+    .tv-row.tonight {
+      background: var(--tv-soft);
+      border: 1px solid rgba(155, 126, 217, 0.3);
+    }
+
+    .tv-row .tv-time {
+      font-weight: 600;
+      color: var(--tv);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .tv-row .tv-show {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tv-row .tv-ep {
+      color: var(--muted);
+      font-size: 0.92em;
+      white-space: nowrap;
+    }
+
+    .tv-panel .list-empty {
+      font-size: clamp(0.7rem, 1vw, 0.82rem);
+      padding: 0.25rem;
+    }
 
     .tv-item .show-name {
       font-weight: 600;
@@ -402,6 +469,9 @@
       background: var(--tv-soft);
       border: 1px solid rgba(155, 126, 217, 0.35);
     }
+
+    /* legacy tv-item styles kept for compatibility */
+    .tv-panel .bullet { display: none; }
 
     .grocery-panel .bullet { background: var(--grocery); }
 
@@ -620,17 +690,6 @@
       cursor: pointer;
     }
 
-    .tv-section-label {
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--tv);
-      margin: 0.75rem 0 0.45rem;
-    }
-
-    .tv-section-label:first-child { margin-top: 0; }
-
     .close-btn {
       background: none;
       border: none;
@@ -694,7 +753,7 @@
         <div class="lists-row">
           <section class="panel list-panel tv-panel">
             <div class="panel-header">
-              <span class="panel-title tv-title"><span class="icon">📺</span>TV Shows</span>
+              <span class="panel-title tv-title"><span class="icon">📺</span>TV</span>
               <span class="sync-status" id="tvStatus"></span>
             </div>
             <div class="panel-body" style="display:flex;flex-direction:column;">
@@ -1039,19 +1098,23 @@
       }
     }
 
+    const MAX_TV_ROWS = 6;
+
     function renderTVList() {
       const el = document.getElementById('tvList');
       const today = new Date();
       const todayKey = dateKey(today);
 
       if (!tvEpisodes.length) {
-        el.innerHTML = `<div class="list-empty">Star shows in TV Tracker — episodes air here when scheduled</div>`;
+        el.innerHTML = `<div class="list-empty">No favorite episodes this week</div>`;
         updateTodayBannerTV([]);
         return;
       }
 
       const todayEps = tvEpisodes.filter(ep => ep.airdate === todayKey);
       const laterEps = tvEpisodes.filter(ep => ep.airdate !== todayKey);
+      const slotsLeft = Math.max(0, MAX_TV_ROWS - todayEps.length);
+      const visibleLater = laterEps.slice(0, slotsLeft);
 
       updateTodayBannerTV(todayEps);
 
@@ -1062,43 +1125,28 @@
         html += todayEps.map(ep => renderTVEpisode(ep, true)).join('');
       }
 
-      if (laterEps.length) {
-        html += `<div class="tv-section-label">${todayEps.length ? 'Later this week' : 'This week'}</div>`;
-        html += laterEps.slice(0, todayEps.length ? 10 : 14).map(ep => renderTVEpisode(ep, false)).join('');
-        if (laterEps.length > (todayEps.length ? 10 : 14)) {
-          html += `<div class="list-empty">+${laterEps.length - (todayEps.length ? 10 : 14)} more</div>`;
-        }
+      if (visibleLater.length) {
+        html += `<div class="tv-section-label">${todayEps.length ? 'Coming up' : 'This week'}</div>`;
+        html += visibleLater.map(ep => renderTVEpisode(ep, false)).join('');
       }
 
-      el.innerHTML = html || `<div class="list-empty">Nothing airing this week for your favorites</div>`;
+      el.innerHTML = html || `<div class="list-empty">Nothing airing this week</div>`;
     }
 
     function renderTVEpisode(ep, isToday) {
-      const dayLabel = formatEpisodeDay(ep.airdate);
       const timeLabel = formatEpisodeTime(ep.airtime);
-      const airLabel = timeLabel ? `${dayLabel}<br>${timeLabel}` : dayLabel;
+      const dayLabel = isToday ? (timeLabel || 'Today') : `${formatEpisodeDay(ep.airdate).replace(' ', '\u00a0')}${timeLabel ? ' ' + timeLabel : ''}`;
       return `
-        <div class="list-item tv-item${isToday ? ' today-item' : ''}">
-          <span class="bullet"></span>
-          <div style="flex:1;min-width:0;">
-            <span class="show-name">${esc(ep.showName)}</span>
-            <div class="episode-name">S${ep.season}E${ep.number} — ${esc(ep.episodeName)}</div>
-          </div>
-          <span class="air-label">${airLabel}</span>
+        <div class="tv-row${isToday ? ' tonight' : ''}">
+          <span class="tv-time">${esc(dayLabel.trim())}</span>
+          <span class="tv-show">${esc(ep.showName)}</span>
+          <span class="tv-ep">S${ep.season}E${ep.number}</span>
         </div>`;
     }
 
-    function updateTodayBannerTV(todayEps) {
+    function updateTodayBannerTV(_todayEps) {
       const banner = document.getElementById('todayBanner');
-      const calPart = banner.dataset.calPart || '';
-      let tvPart = '';
-      if (todayEps.length) {
-        tvPart = `<br><strong style="color:var(--tv)">TV tonight:</strong> ${todayEps.map(ep => {
-          const t = formatEpisodeTime(ep.airtime);
-          return `${t ? t + ' — ' : ''}${esc(ep.showName)} (${esc(ep.episodeName)})`;
-        }).join(' · ')}`;
-      }
-      banner.innerHTML = calPart + tvPart;
+      banner.innerHTML = banner.dataset.calPart || '<strong>Today:</strong> No events scheduled';
     }
 
     function renderGroceryList() {
