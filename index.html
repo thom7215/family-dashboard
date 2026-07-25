@@ -1526,6 +1526,9 @@
     });
 
     document.addEventListener('keydown', e => {
+      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
+      if (typing) return;
+
       if (e.key === 's' || e.key === 'S') {
         if (document.getElementById('settingsOverlay').classList.contains('open')) closeSettings();
         else openSettings();
