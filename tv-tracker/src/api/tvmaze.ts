@@ -127,12 +127,32 @@ export function posterUrl(path: string | null): string | null {
   return path;
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+function localDateKey(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function nextLocalDateKeys(count: number): string[] {
+  const dates: string[] = [];
+  const d = new Date();
+  for (let i = 0; i < count; i++) {
+    dates.push(localDateKey(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+async function fetchScheduleForDates(dates: string[]): Promise<TvmazeScheduleEntry[]> {
+  const schedules = await Promise.all(
+    dates.map((date) => tvmazeFetch<TvmazeScheduleEntry[]>(`/schedule?country=US&date=${date}`)),
+  );
+  return schedules.flat();
 }
 
 export async function fetchTrending(): Promise<TvShow[]> {
-  const schedule = await tvmazeFetch<TvmazeScheduleEntry[]>(`/schedule?country=US&date=${todayIso()}`);
+  const schedule = await tvmazeFetch<TvmazeScheduleEntry[]>(`/schedule?country=US&date=${localDateKey()}`);
   const shows = dedupeShows(
     schedule
       .map((entry) => getShowFromEntry(entry))
@@ -143,7 +163,7 @@ export async function fetchTrending(): Promise<TvShow[]> {
 }
 
 export async function fetchThisWeek(): Promise<TvShow[]> {
-  const schedule = await tvmazeFetch<TvmazeScheduleEntry[]>('/schedule/full?country=US');
+  const schedule = await fetchScheduleForDates(nextLocalDateKeys(7));
 
   const byShow = new Map<number, { show: TvmazeShow; entries: TvmazeScheduleEntry[] }>();
   for (const entry of schedule) {
