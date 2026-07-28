@@ -265,9 +265,19 @@
     /* Right column */
     .right-col {
       display: grid;
-      grid-template-rows: 1fr auto;
+      grid-template-rows: 1fr 1fr;
       gap: 0.75rem;
       min-height: 0;
+    }
+
+    .week-panel .panel-body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .week-panel .today-banner {
+      flex-shrink: 0;
     }
 
     /* Week view */
@@ -275,7 +285,8 @@
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 6px;
-      height: 100%;
+      flex: 1;
+      min-height: 0;
     }
 
     .week-day {
@@ -339,7 +350,11 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 0.75rem;
-      align-items: start;
+      min-height: 0;
+    }
+
+    .lists-row .list-panel {
+      min-height: 0;
     }
 
     .list-panel .panel-title.tv-title { color: var(--tv); }
@@ -711,7 +726,7 @@
 
     @media (max-width: 1100px) {
       .main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-      .right-col { grid-template-rows: auto auto; }
+      .right-col { grid-template-rows: 1fr 1fr; }
     }
   </style>
 </head>
