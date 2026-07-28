@@ -401,7 +401,9 @@
 
     .tv-panel .list-items {
       gap: 0.2rem;
-      overflow: hidden;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
 
     .tv-section-label {
@@ -432,6 +434,14 @@
     .tv-row.tonight {
       background: var(--tv-soft);
       border: 1px solid rgba(155, 126, 217, 0.3);
+    }
+
+    .tv-row.past {
+      opacity: 0.7;
+    }
+
+    .tv-row.past .tv-show {
+      font-weight: 500;
     }
 
     .tv-row .tv-time {
@@ -1051,10 +1061,11 @@
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
-    function weekDateKeys() {
+    function tvWindowDateKeys() {
       const keys = [];
       const d = new Date();
-      for (let i = 0; i < 7; i++) {
+      d.setDate(d.getDate() - 7);
+      for (let i = 0; i < 15; i++) {
         keys.push(localDateKey(d));
         d.setDate(d.getDate() + 1);
       }
@@ -1062,7 +1073,7 @@
     }
 
     async function fetchWeekSchedule() {
-      const dates = weekDateKeys();
+      const dates = tvWindowDateKeys();
       const results = await Promise.all(
         dates.map((date) =>
           fetch(tvmazeUrl(`/schedule?country=US&date=${date}`))
@@ -1145,59 +1156,69 @@
       }
     }
 
-    const MAX_TV_ROWS = 6;
-
     function renderTVList() {
       const el = document.getElementById('tvList');
-      const today = new Date();
-      const todayKey = dateKey(today);
+      const todayKey = dateKey(new Date());
 
       if (!tvEpisodes.length) {
-        el.innerHTML = `<div class="list-empty">No favorite episodes this week</div>`;
+        el.innerHTML = `<div class="list-empty">No favorite episodes in the last 2 weeks</div>`;
         updateTodayBannerTV([]);
         return;
       }
 
+      const pastEps = tvEpisodes.filter(ep => ep.airdate < todayKey).reverse();
       const todayEps = tvEpisodes.filter(ep => ep.airdate === todayKey);
-      const laterEps = tvEpisodes.filter(ep => ep.airdate !== todayKey);
-      const slotsLeft = Math.max(0, MAX_TV_ROWS - todayEps.length);
-      const visibleLater = laterEps.slice(0, slotsLeft);
+      const futureEps = tvEpisodes.filter(ep => ep.airdate > todayKey);
 
       updateTodayBannerTV(todayEps);
 
       let html = '';
 
+      if (pastEps.length) {
+        html += `<div class="tv-section-label">Recently aired</div>`;
+        html += pastEps.map(ep => renderTVEpisode(ep, 'past')).join('');
+      }
+
       if (todayEps.length) {
         html += `<div class="tv-section-label">Tonight</div>`;
-        html += todayEps.map(ep => renderTVEpisode(ep, true)).join('');
+        html += todayEps.map(ep => renderTVEpisode(ep, 'today')).join('');
       }
 
-      if (visibleLater.length) {
-        html += `<div class="tv-section-label">${todayEps.length ? 'Coming up' : 'This week'}</div>`;
-        html += visibleLater.map(ep => renderTVEpisode(ep, false)).join('');
+      if (futureEps.length) {
+        html += `<div class="tv-section-label">${todayEps.length || pastEps.length ? 'Coming up' : 'This week'}</div>`;
+        html += futureEps.map(ep => renderTVEpisode(ep, 'future')).join('');
       }
 
-      el.innerHTML = html || `<div class="list-empty">Nothing airing this week</div>`;
+      el.innerHTML = html || `<div class="list-empty">Nothing in the last 2 weeks</div>`;
     }
 
-    function formatCompactAirLabel(ep, isToday) {
+    function formatCompactAirLabel(ep, kind) {
       const timeLabel = formatEpisodeTime(ep.airtime);
-      if (isToday) return timeLabel || 'Today';
+      if (kind === 'today') return timeLabel || 'Today';
 
       const d = new Date(ep.airdate + 'T12:00:00');
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const datePart = sameDay(d, tomorrow)
-        ? 'Tmrw'
-        : `${d.getMonth() + 1}/${d.getDate()}`;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      let datePart;
+      if (kind === 'future' && sameDay(d, tomorrow)) {
+        datePart = 'Tmrw';
+      } else if (kind === 'past' && sameDay(d, yesterday)) {
+        datePart = 'Yday';
+      } else {
+        datePart = `${d.getMonth() + 1}/${d.getDate()}`;
+      }
 
       return timeLabel ? `${datePart} ${timeLabel}` : datePart;
     }
 
-    function renderTVEpisode(ep, isToday) {
-      const dayLabel = formatCompactAirLabel(ep, isToday);
+    function renderTVEpisode(ep, kind) {
+      const dayLabel = formatCompactAirLabel(ep, kind);
+      const rowClass = kind === 'today' ? ' tonight' : kind === 'past' ? ' past' : '';
       return `
-        <div class="tv-row${isToday ? ' tonight' : ''}">
+        <div class="tv-row${rowClass}">
           <span class="tv-time" title="${esc(dayLabel.trim())}">${esc(dayLabel.trim())}</span>
           <span class="tv-show" title="${esc(ep.showName)}">${esc(ep.showName)}</span>
           <span class="tv-ep">S${ep.season}E${ep.number}</span>
