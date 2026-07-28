@@ -508,6 +508,16 @@
 
     .grocery-panel .bullet { background: var(--grocery); }
 
+    .grocery-panel .list-items {
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .grocery-item.view-only {
+      cursor: default;
+    }
+
     .list-empty {
       color: var(--muted);
       font-size: clamp(0.85rem, 1.2vw, 1rem);
@@ -799,12 +809,8 @@
               <span class="panel-title grocery-title"><span class="icon">🛒</span>Grocery</span>
               <span class="sync-status" id="groceryStatus"></span>
             </div>
-            <div class="panel-body" style="display:flex;flex-direction:column;">
-              <div class="list-items" id="groceryList" style="flex:1;"></div>
-              <div class="grocery-add">
-                <input type="text" id="quickGrocery" placeholder="Add grocery item…" autocomplete="off">
-                <button class="btn" id="quickAddGrocery" type="button">Add</button>
-              </div>
+            <div class="panel-body">
+              <div class="list-items" id="groceryList"></div>
             </div>
           </section>
         </div>
@@ -871,15 +877,6 @@
             (<a href="tv/" target="_blank">open TV Tracker</a> when hosted on GitHub Pages).
           </p>
           <button class="btn btn-secondary" id="refreshTV" type="button">Refresh TV list</button>
-        </div>
-
-        <div class="edit-section">
-          <h3>Grocery List</h3>
-          <div class="edit-list" id="editGroceryList"></div>
-          <div class="add-row">
-            <input type="text" id="newGrocery" placeholder="Add grocery item...">
-            <button class="btn" id="addGrocery">Add</button>
-          </div>
         </div>
       </div>
     </div>
@@ -964,7 +961,14 @@
     }
 
     async function loadCloudGroceries() {
-      if (!useCloud()) return;
+      if (!useCloud()) {
+        const status = document.getElementById('groceryStatus');
+        status.textContent = 'View only';
+        status.className = 'sync-status';
+        state.groceries = [];
+        renderGroceryList();
+        return;
+      }
       const status = document.getElementById('groceryStatus');
       try {
         status.textContent = 'Syncing…';
@@ -975,46 +979,6 @@
       } catch {
         status.textContent = 'Sync failed';
         status.className = 'sync-status error';
-      }
-    }
-
-    async function saveGroceries() {
-      saveState();
-      if (!useCloud()) return;
-      const status = document.getElementById('groceryStatus');
-      try {
-        await apiFetch('/api/groceries', { method: 'PUT', body: JSON.stringify(state.groceries) });
-        status.textContent = `${state.groceries.filter(g => !g.done).length} items`;
-        status.className = 'sync-status ok';
-      } catch {
-        status.textContent = 'Save failed';
-        status.className = 'sync-status error';
-      }
-    }
-
-    async function addGroceryItem(text) {
-      if (!text.trim()) return;
-      if (useCloud()) {
-        const status = document.getElementById('groceryStatus');
-        try {
-          status.textContent = 'Saving…';
-          state.groceries = await apiFetch('/api/groceries', {
-            method: 'POST',
-            body: JSON.stringify({ text: text.trim() }),
-          });
-          status.textContent = `${state.groceries.filter(g => !g.done).length} items`;
-          status.className = 'sync-status ok';
-          renderGroceryList();
-          renderEditLists();
-        } catch {
-          status.textContent = 'Add failed';
-          status.className = 'sync-status error';
-        }
-      } else {
-        state.groceries.push({ text: text.trim(), done: false, id: Date.now() });
-        saveState();
-        renderGroceryList();
-        renderEditLists();
       }
     }
 
@@ -1232,28 +1196,20 @@
 
     function renderGroceryList() {
       const el = document.getElementById('groceryList');
-      const active = state.groceries.filter(i => !i.done);
-      const done = state.groceries.filter(i => i.done);
 
       if (!state.groceries.length) {
-        el.innerHTML = `<div class="list-empty">Add items below — everyone in the family can contribute</div>`;
+        el.innerHTML = `<div class="list-empty">No items on the list</div>`;
         return;
       }
 
-      const renderItem = (item, idx) =>
-        `<label class="list-item grocery-item${item.done ? ' done' : ''}">
-          <input type="checkbox" data-grocery-id="${item.id}" data-grocery-idx="${idx}" ${item.done ? 'checked' : ''}>
-          <span>${esc(item.text)}</span>
-        </label>`;
+      const active = state.groceries.filter(i => !i.done);
+      const done = state.groceries.filter(i => i.done);
+      const renderItem = (item) =>
+        `<div class="list-item grocery-item view-only${item.done ? ' done' : ''}"><span class="bullet"></span><span>${esc(item.text)}</span></div>`;
 
-      const indexed = state.groceries.map((item, idx) => ({ item, idx }));
-      const activeItems = indexed.filter(x => !x.item.done);
-      const doneItems = indexed.filter(x => x.item.done);
-
-      el.innerHTML = [...activeItems, ...doneItems].slice(0, 14)
-        .map(({ item, idx }) => renderItem(item, idx)).join('');
-      if (state.groceries.length > 14) {
-        el.innerHTML += `<div class="list-empty">+${state.groceries.length - 14} more</div>`;
+      el.innerHTML = [...active, ...done].slice(0, 20).map(renderItem).join('');
+      if (state.groceries.length > 20) {
+        el.innerHTML += `<div class="list-empty">+${state.groceries.length - 20} more</div>`;
       }
     }
 
@@ -1533,16 +1489,6 @@
       }
     }
 
-    function renderEditLists() {
-      const groceryEl = document.getElementById('editGroceryList');
-
-      groceryEl.innerHTML = state.groceries.map((item, i) => `
-        <label class="edit-list-item">
-          <input type="checkbox" data-type="grocery" data-idx="${i}" ${item.done ? 'checked' : ''}>
-          <span>${esc(item.text)}</span>
-        </label>`).join('') || '<span class="form-hint">No items</span>';
-    }
-
     function renderAll() {
       renderMonth();
       renderWeek();
@@ -1563,7 +1509,6 @@
       document.getElementById('icsUrl').value = state.icsUrl;
       document.getElementById('proxyUrl').value = state.proxyUrl;
       document.getElementById('refreshMinutes').value = state.refreshMinutes;
-      renderEditLists();
       document.getElementById('settingsOverlay').classList.add('open');
     }
 
@@ -1584,14 +1529,6 @@
       syncTVShows();
       renderClock();
       closeSettings();
-    }
-
-    function addItemFromInput(inputId) {
-      const input = document.getElementById(inputId);
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
-      addGroceryItem(text);
     }
 
     /* ---- Init ---- */
@@ -1627,31 +1564,10 @@
       renderAll();
     });
 
-    document.getElementById('addGrocery').addEventListener('click', () => addItemFromInput('newGrocery'));
-    document.getElementById('newGrocery').addEventListener('keydown', e => { if (e.key === 'Enter') addItemFromInput('newGrocery'); });
-    document.getElementById('quickAddGrocery').addEventListener('click', () => addItemFromInput('quickGrocery'));
-    document.getElementById('quickGrocery').addEventListener('keydown', e => { if (e.key === 'Enter') addItemFromInput('quickGrocery'); });
     document.getElementById('refreshTV').addEventListener('click', syncTVShows);
 
     document.getElementById('settingsOverlay').addEventListener('click', e => {
       if (e.target.id === 'settingsOverlay') closeSettings();
-    });
-
-    document.addEventListener('change', e => {
-      const t = e.target;
-      if (t.dataset.type === 'grocery') {
-        state.groceries[+t.dataset.idx].done = t.checked;
-        saveGroceries();
-        renderAll();
-      }
-      if (t.dataset.groceryId) {
-        const item = state.groceries.find(g => String(g.id) === t.dataset.groceryId);
-        if (item) {
-          item.done = t.checked;
-          saveGroceries();
-          renderAll();
-        }
-      }
     });
 
     document.addEventListener('keydown', e => {
